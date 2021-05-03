@@ -258,6 +258,17 @@ color:rgb(0, 0, 0);
 }
 QDateEdit:focus {
 border: 2px solid rgb(143,184,243);
+}
+QCalendarWidget QToolButton {
+color: white;
+background-color: rgb(25, 135, 84);
+}
+QCalendarWidget QAbstractItemView:enabled {
+selection-color: rgb(13, 110, 253);
+selection-background-color: rgb(248, 249, 250);
+}
+QCalendarWidget QWidget#qt_calendar_navigationbar {
+background-color:  rgb(25, 135, 84);
 }</string>
    </property>
    <property name="wrapping">

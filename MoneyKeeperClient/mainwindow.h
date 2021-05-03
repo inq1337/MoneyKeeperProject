@@ -58,45 +58,17 @@ private slots:
 
     void on_addPlanButton_released();
 
-    void readData();
+    void on_updateButton_pressed();
 
-    void updateTable();
+    void on_updateButton_released();
 
-    void updatePlansTable();
+    void on_exitButton_pressed();
 
-    void createNewChart();
-
-    void paintChart();
-
-    void addToChart();
-
-    void RemoveFromChart(QString name, int sum);
-
-    void updateMap();
-
-    void createNewSelectedData();
-
-    void addToSelectedData();
-
-    void removeFromSelectedData(int removeID);
-
-    bool allowAddingPlan(QString category, int sum);
+    void on_exitButton_released();
 
     void on_addPlanButton_clicked();
 
     void on_removePlanButton_clicked();
-
-    void initializeChartColors();
-
-    void on_authEnterButton_clicked();
-
-    void regRequestFinished(QNetworkReply *reply);
-
-    void authRequestFinished(QNetworkReply *reply);
-
-    void reloadDataRequestFinished(QNetworkReply *reply);
-
-    void reloadAllData();
 
     void on_regEnterButton_clicked();
 
@@ -114,19 +86,51 @@ private slots:
 
     void on_exitButton_clicked();
 
-    void on_updateButton_pressed();
+    void initializeChartColors();
 
-    void on_updateButton_released();
+    void readUserInfo();
 
-    void on_exitButton_pressed();
+    void clearAll();
 
-    void on_exitButton_released();
+    void createNewSelectedData();
+
+    void updateMap();
+
+    void updateTable();
+
+    void updatePlansTable();
+
+    void createNewChart();
+
+    void paintChart();
+
+    void addToSelectedData();
+
+    void addToChart();
+
+    void removeFromSelectedData(int removeID);
+
+    void RemoveFromChart(QString name, int sum);
+
+    bool allowAddingPlan(QString category, int sum);
+
+    void on_authEnterButton_clicked();
+
+    void reloadAllData();
 
     void logIn();
 
     void removeCostRequest(int costID);
 
-    void removeCostRequestFinished(QNetworkReply* reply);
+    void addPlanRequest(int sum, QString category);
+
+    void removePlanRequest(QString category);
+
+    void regRequestFinished(QNetworkReply *reply);
+
+    void authRequestFinished(QNetworkReply *reply);
+
+    void reloadDataRequestFinished(QNetworkReply *reply);
 
     void updateAllRequestFinished(QNetworkReply* reply);
 
@@ -153,6 +157,18 @@ private:
     QPieSeries *series;
 
     QChartView *chartview;
+
+    QStandardItemModel *costsTableModel, *planTableModel;
+
+    QNetworkAccessManager *manager;
+
+    QNetworkRequest request;
+
+    QString answer, login, password;
+
+    QString server = "http://localhost:5000/";
+
+    int userID = 0;
 
     QString primaryButtonFrameFocusStyle = "QFrame{"
     "border-style: solid;"
@@ -198,16 +214,6 @@ private:
     "border-radius: 6px;"
     "background-color: rgb(192,196,200);"
     "}";
-
-    QNetworkAccessManager *manager;
-
-    QNetworkRequest request;
-
-    QString answer, login, password;
-
-    QString server = "http://localhost:5000/";
-
-    int userID = 0;
 
 };
 #endif // MAINWINDOW_H

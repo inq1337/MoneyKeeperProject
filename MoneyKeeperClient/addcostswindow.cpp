@@ -45,7 +45,6 @@ void addCostsWindow::addRequestFinished(QNetworkReply *reply) {
         qDebug() << reply->errorString();
         return;
     }
-    qDebug() << reply->readAll();
     this->close();
 }
 

@@ -35,8 +35,11 @@ def add_cost(user_id, cost_id, cost_sum: int, cost_date, cost_category, cost_com
     for user in users_base:
         if user["id"] == user_id:
             user["data"] += [{"category": cost_category, "comment": cost_comment, "date": cost_date, "id": cost_id, "sum": cost_sum}]
+            write_to_json()
+            return 'OK'
             break
-    write_to_json()
+    else:
+        return 'no such user'
 
 
 def get_all(user_id: int, password: str):
@@ -53,33 +56,54 @@ def get_all(user_id: int, password: str):
 
 def remove_cost(user_id, cost_id: int):
     global users_base
-    print(users_base)
-    existence = False
     for user in users_base:
-        print(type(user['id']))
         if user["id"] == user_id:
-            print(1)
-            existence = True
             for cost in user['data']:
-                print(cost)
-                print(type(cost))
                 if cost['id'] == cost_id:
-                    print(2)
                     user['data'].remove(cost)
                     write_to_json()
+                    return 'OK'
                     break
+            else:
+                return 'no such cost' 
             break
-    if existence:
-        return 'OK'
     else:
-        return 'no such cost'            
+        return 'no such user'        
+
+
+def add_plan(user_id, plan_category, plan_sum):
+    global users_base
+    for user in users_base:
+        if user["id"] == user_id:
+            user["plans"] += [{"category": plan_category, "sum": plan_sum}]
+            write_to_json()
+            return 'OK'
+            break
+    else:
+        return 'no such user'
+
+def remove_plan(user_id, plan_category):
+    global users_base
+    for user in users_base:
+        if user["id"] == user_id:
+            for plan in user['plans']:
+                if plan['category'] == plan_category:
+                    user['plans'].remove(plan)
+                    write_to_json()
+                    return 'OK'
+                    break
+            else:
+                return 'no such cost' 
+            break
+    else:
+        return 'no such user'      
 
 
 read_json()
 app = Flask(__name__)
 
 @app.route("/register", methods=['GET'])
-def login_f():
+def register_f():
     login = request.args.get('login')
     password = request.args.get('password')
     existence = True
@@ -101,15 +125,18 @@ def login_f():
 
 
 @app.route("/login", methods=['GET'])
-def register_f():
+def login_f():
     login = request.args.get('login')
     password = request.args.get('password')
                 
     for i in range(len(users_base)):
-        if users_base[i]["login"] == login:
-            return str(users_base[i]['id'])
+        if users_base[i]['login'] == login:
+            if users_base[i]['password'] == password:
+                return str(users_base[i]['id'])
+            else:
+                return 'wrong password'
             
-    return 'noneUser'
+    return 'no such user'
 
 
 @app.route("/addCosts", methods=['GET'])
@@ -120,16 +147,15 @@ def add_cost_f():
     cost_category = request.args.get('category')
     cost_sum = int(request.args.get('sum'))
     cost_comment = request.args.get('comment')
-    print(user_id, cost_id, cost_sum, cost_date, cost_category, cost_comment)
-    add_cost(user_id, cost_id, cost_sum, cost_date, cost_category, cost_comment)
 
-    return 'OK'
+    return add_cost(user_id, cost_id, cost_sum, cost_date, cost_category, cost_comment)
 
 
 @app.route("/getAll", methods=['GET'])
 def get_all_f():
     user_id = int(request.args.get('userID'))
     password = request.args.get('password')
+
     return get_all(user_id, password)
 
 
@@ -139,6 +165,24 @@ def remove_cost_f():
     cost_id = int(request.args.get('costID'))
 
     return remove_cost(user_id, cost_id)
+
+
+@app.route("/addPlan", methods=['GET'])
+def add_plan_f():
+    user_id = int(request.args.get('userID'))
+    plan_category = request.args.get('category')
+    plan_sum = int(request.args.get('sum'))
+
+    return add_plan(user_id, plan_category, plan_sum)
+
+
+@app.route("/removePlan", methods=['GET'])
+def remove_plan_f():
+    user_id = int(request.args.get('userID'))
+    plan_category = request.args.get('category')
+
+    return remove_plan(user_id, plan_category)
+
 
 if __name__ == "__main__":
     app.run()

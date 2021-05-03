@@ -2,21 +2,16 @@
 #include "ui_mainwindow.h"
 #include "addcostswindow.h"
 
-QJsonObject openUserData(); //main.cpp
-void saveToJson(QJsonObject data); //main.cpp
-void addPlans(QString category, int sum); //main.cpp
 QJsonObject openUserInfo(); //main.cpp
 void addUserInfo(QString login, QString password, int id); //main.cpp
+void removeUserInfo(); //main.cpp
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
     initializeChartColors();
-
-    login = openUserInfo().value("login").toString();
-    password = openUserInfo().value("password").toString();
-    userID = openUserInfo().value("id").toInt();
+    readUserInfo();
 
     chart = new QChart();
     ui->setupUi(this);
@@ -55,10 +50,10 @@ void MainWindow::initializeChartColors() {
     chartColors["Прочее"] = "#62757f";           //grey (dark)
 }
 
-void MainWindow::readData() {
-    fullUserData = openUserData();
-    userCostsData = fullUserData.value("data").toArray();
-    userPlansData = fullUserData.value("plans").toArray();
+void MainWindow::readUserInfo() {
+    login = openUserInfo().value("login").toString();
+    password = openUserInfo().value("password").toString();
+    userID = openUserInfo().value("id").toInt();
 }
 
 void MainWindow::createNewChart() {
@@ -148,8 +143,8 @@ void MainWindow::removeFromSelectedData(int removeID) {
 }
 
 void MainWindow::updateTable() {
-    QStandardItemModel* costsTablemodel = new QStandardItemModel(nullptr);
-    costsTablemodel->setHorizontalHeaderLabels(QStringList()<<"ID"<<""<<"Дата"<<"Категория"<<"Сумма"<<"Комментарий");
+    costsTableModel = new QStandardItemModel(nullptr);
+    costsTableModel->setHorizontalHeaderLabels(QStringList()<<"ID"<<""<<"Дата"<<"Категория"<<"Сумма"<<"Комментарий");
 
     for (int i = 0; i < selectedCostsDataRange.count(); ++i) {
         QString id, date, category, sum, comment;
@@ -168,10 +163,10 @@ void MainWindow::updateTable() {
 
         costsTableCategoryCol->setData(QColor(chartColors[category]), Qt::TextColorRole);
 
-        costsTablemodel->appendRow(QList<QStandardItem*>() << costsTableIDCol << costsTableSpacingCol
+        costsTableModel->appendRow(QList<QStandardItem*>() << costsTableIDCol << costsTableSpacingCol
                                    << costsTableDateCol << costsTableCategoryCol << costsTableSumCol << costsTableCommentCol);
     }
-    ui->costsTable->setModel(costsTablemodel);
+    ui->costsTable->setModel(costsTableModel);
     ui->costsTable->horizontalHeader()->setDefaultAlignment(Qt::AlignJustify);
     ui->costsTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
     ui->costsTable->setColumnHidden(0, true);
@@ -242,7 +237,6 @@ void MainWindow::on_addCostsButton_clicked() {
         this, SLOT(updateAllRequestFinished(QNetworkReply*)));
 
     QString req = server + "getAll?" + "userID=" + QString::number(userID) + "&password=" + password;
-    qDebug() << userID;
     request.setUrl(QUrl(req));
     manager->get(request);
 }
@@ -288,23 +282,20 @@ void MainWindow::on_removeCostsButton_clicked() {
 
 void MainWindow::removeCostRequest(int costID) {
     manager = new QNetworkAccessManager();
-    QObject::connect(manager, SIGNAL(finished(QNetworkReply*)),
-        this, SLOT(removeCostRequestFinished(QNetworkReply*)));
+    QObject::connect(manager, &QNetworkAccessManager::finished,
+        this, [=](QNetworkReply *reply) {
+            if (reply->error()) {
+                qDebug() << reply->errorString();
+                return;
+            }
+            answer = reply->readAll();
+        }
+    );
 
     QString req = server + "removeCost?" + "userID=" + QString::number(userID)
             + "&costID=" + QString::number(costID);
-    qDebug() << req;
     request.setUrl(QUrl(req));
     manager->get(request);
-}
-
-void MainWindow::removeCostRequestFinished(QNetworkReply* reply) {
-    if (reply->error()) {
-        qDebug() << reply->errorString();
-        return;
-    }
-    answer = reply->readAll();
-    qDebug() << answer;
 }
 
 void MainWindow::on_changeDataRangeButton_clicked() {
@@ -317,8 +308,8 @@ void MainWindow::on_changeDataRangeButton_clicked() {
 }
 
 void MainWindow::updatePlansTable() {
-    QStandardItemModel* planModel = new QStandardItemModel(nullptr);
-    planModel->setHorizontalHeaderLabels(QStringList()<<""<<"Категория"<<"Потрачено"<<"");
+    planTableModel = new QStandardItemModel(nullptr);
+    planTableModel->setHorizontalHeaderLabels(QStringList()<<""<<"Категория"<<"Потрачено"<<"");
 
     for (int i = 0; i < userPlansData.count(); ++i) {
         QString category = userPlansData.at(i).toObject().value("category").toString();
@@ -330,9 +321,9 @@ void MainWindow::updatePlansTable() {
         QStandardItem* spentCol = new QStandardItem(QString::number(costsTypeCount[category])+
                                                     "/" + QString::number(sum));
         QStandardItem* spentPecentageCol = new QStandardItem(QString::number(spentPercentage) + "%");
-        planModel->appendRow(QList<QStandardItem*>()<<spacingCol<<categoryCol<<spentCol<<spentPecentageCol);
+        planTableModel->appendRow(QList<QStandardItem*>()<<spacingCol<<categoryCol<<spentCol<<spentPecentageCol);
     }
-    ui->planTable->setModel(planModel);
+    ui->planTable->setModel(planTableModel);
     ui->planTable->horizontalHeader()->setDefaultAlignment(Qt::AlignJustify);
     ui->planTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
     ui->planTable->setColumnWidth(0, 2);
@@ -359,10 +350,31 @@ void MainWindow::on_addPlanButton_clicked() {
     int sum = ui->addPlanSumLine->text().toInt();
 
     if (allowAddingPlan(category, sum)) {
-        addPlans(category, sum);
-        readData();
+        QJsonObject onePlanAddition;
+        onePlanAddition.insert("category", category);
+        onePlanAddition.insert("sum", sum);
+        userPlansData.append(onePlanAddition);
         updatePlansTable();
+        addPlanRequest(sum, category);
     }
+}
+
+void MainWindow::addPlanRequest(int sum, QString category) {
+    manager = new QNetworkAccessManager();
+    QObject::connect(manager, &QNetworkAccessManager::finished,
+        this, [=](QNetworkReply *reply) {
+            if (reply->error()) {
+                qDebug() << reply->errorString();
+                return;
+            }
+            answer = reply->readAll();
+        }
+    );
+
+    QString req = server + "addPlan?" + "userID=" + QString::number(userID) + "&category="
+                + category + "&sum=" + QString::number(sum);
+    request.setUrl(QUrl(req));
+    manager->get(request);
 }
 
 void MainWindow::on_removePlanButton_clicked() {
@@ -377,14 +389,28 @@ void MainWindow::on_removePlanButton_clicked() {
             QString jsonName = userPlansData.at(i).toObject().value("category").toString();
             if (jsonName == tableName) {
                 userPlansData.removeAt(i);
-                QJsonObject data;
-                data.insert("data", userCostsData);
-                data.insert("plans", userPlansData);
-                saveToJson(data);
+                removePlanRequest(tableName);
                 break;
             }
         }
     }
+}
+
+void MainWindow::removePlanRequest(QString category) {
+    manager = new QNetworkAccessManager();
+    QObject::connect(manager, &QNetworkAccessManager::finished,
+        this, [=](QNetworkReply *reply) {
+            if (reply->error()) {
+                qDebug() << reply->errorString();
+                return;
+            }
+            answer = reply->readAll();
+        }
+    );
+
+    QString req = server + "removePlan?" + "userID=" + QString::number(userID) + "&category=" + category;
+    request.setUrl(QUrl(req));
+    manager->get(request);
 }
 
 void MainWindow::on_authEnterButton_clicked() {
@@ -446,8 +472,13 @@ void MainWindow::regRequestFinished(QNetworkReply *reply) {
     }
     else {
         userID = answer.toUInt();
-        ui->stackedWidget->setCurrentIndex(2);
         addUserInfo(login, password, answer.toInt());
+        ui->regLoginLine->clear();
+        ui->regPasswordLine->clear();
+        ui->regRepeatPasswordLine->clear();
+        ui->regWrongLabel->clear();
+        createNewChart();
+        ui->stackedWidget->setCurrentIndex(2);
     }
 }
 
@@ -458,14 +489,23 @@ void MainWindow::authRequestFinished(QNetworkReply *reply) {
     }
     answer = reply->readAll();
 
-    if (answer == "noneUser") {
+    if (answer == "no such user") {
         ui->authWrongLabel->setText("Нет пользователя с таким именем");
         ui->authLoginLine->clear();
     }
+    else if (answer == "wrong password") {
+        ui->authWrongLabel->setText("Неверный пароль");
+        ui->authPasswordLine->clear();
+    }
     else {
         userID = answer.toUInt();
-        ui->stackedWidget->setCurrentIndex(2);
         addUserInfo(login, password, answer.toInt());
+        readUserInfo();
+        reloadAllData();
+        ui->authLoginLine->clear();
+        ui->authPasswordLine->clear();
+        ui->authWrongLabel->clear();
+        ui->stackedWidget->setCurrentIndex(2);
     }
 }
 
@@ -475,7 +515,6 @@ void MainWindow::reloadAllData() {
         this, SLOT(reloadDataRequestFinished(QNetworkReply*)));
 
     QString req = server + "getAll?" + "userID=" + QString::number(userID) + "&password=" + password;
-    qDebug() << userID;
     request.setUrl(QUrl(req));
     manager->get(request);
 }
@@ -502,7 +541,35 @@ void MainWindow::on_updateButton_clicked() {
 }
 
 void MainWindow::on_exitButton_clicked() {
+    removeUserInfo();
+    clearAll();
     ui->stackedWidget->setCurrentIndex(0);
+}
+
+void MainWindow::clearAll() {
+    userID = 0;
+    password = "";
+    login = "";
+    chart->removeAllSeries();
+    costsTableModel->clear();
+    planTableModel->clear();
+    costsTypeCount.clear();
+    while (selectedCostsDataRange.count()) {
+        selectedCostsDataRange.pop_back();
+    }
+    while (userCostsData.count()) {
+        userCostsData.pop_back();
+    }
+    while (userPlansData.count()) {
+        userPlansData.pop_back();
+    }
+    ui->authLoginLine->clear();
+    ui->authPasswordLine->clear();
+    ui->authWrongLabel->clear();
+    ui->regLoginLine->clear();
+    ui->regPasswordLine->clear();
+    ui->regRepeatPasswordLine->clear();
+    ui->regWrongLabel->clear();
 }
 
 void MainWindow::on_authToRegButton_clicked() {

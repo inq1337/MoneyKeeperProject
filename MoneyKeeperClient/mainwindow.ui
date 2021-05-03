@@ -113,7 +113,7 @@ background-color: rgb(255,255,255);</string>
      </property>
      <property name="styleSheet">
       <string notr="true">border: none;
-background-color: rgb(248,249,250);</string>
+background-color: rgb(248, 249, 250);</string>
      </property>
      <widget class="QLabel" name="authTitleLabel">
       <property name="enabled">
@@ -314,16 +314,16 @@ color: rgb(255, 255, 255);
      <widget class="QLabel" name="authWrongLabel">
       <property name="geometry">
        <rect>
-        <x>230</x>
-        <y>500</y>
-        <width>360</width>
-        <height>16</height>
+        <x>220</x>
+        <y>410</y>
+        <width>380</width>
+        <height>25</height>
        </rect>
       </property>
       <property name="font">
        <font>
         <family>Trebuchet MS</family>
-        <pointsize>11</pointsize>
+        <pointsize>13</pointsize>
        </font>
       </property>
       <property name="styleSheet">
@@ -453,16 +453,16 @@ border: 2px solid rgb(143,184,243);
      <widget class="QLabel" name="regWrongLabel">
       <property name="geometry">
        <rect>
-        <x>310</x>
-        <y>500</y>
-        <width>360</width>
-        <height>16</height>
+        <x>175</x>
+        <y>470</y>
+        <width>450</width>
+        <height>25</height>
        </rect>
       </property>
       <property name="font">
        <font>
         <family>Trebuchet MS</family>
-        <pointsize>11</pointsize>
+        <pointsize>13</pointsize>
        </font>
       </property>
       <property name="styleSheet">
@@ -1095,56 +1095,15 @@ QDateEdit:focus {
 border: 2px solid rgb(143,184,243);
 }
 QCalendarWidget QToolButton {
-height: 30px;
-width: 60px;
 color: white;
-font-size: 14px;
-icon-size: 56px, 56px;
-background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop: 0 #cccccc, stop: 1 #333333);
-  }
-  QCalendarWidget QMenu {
-        width: 150px;
-        left: 20px;
-        color: white;
-        font-size: 18px;
-        background-color: rgb(100, 100, 100);
-  }
-  QCalendarWidget QSpinBox {
-        width: 150px;
-        font-size:24px;
-        color: white;
-        background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop: 0 #cccccc, stop: 1 #333333);
-        selection-background-color: rgb(136, 136, 136);
-        selection-color: rgb(255, 255, 255);
-  }
-  QCalendarWidget QSpinBox::up-button { subcontrol-origin: border;  subcontrol-position: top right;  width:65px; }
-  QCalendarWidget QSpinBox::down-button {subcontrol-origin: border; subcontrol-position: bottom right;  width:65px;}
-  QCalendarWidget QSpinBox::up-arrow { width:56px;  height:56px; }
-  QCalendarWidget QSpinBox::down-arrow { width:56px;  height:56px; }
-
-  /* header row */
-  QCalendarWidget QWidget { alternate-background-color: rgb(128, 128, 128); }
-
-  /* normal days */
-  QCalendarWidget QAbstractItemView:enabled
-  {
-        font-size:24px;
-        color: rgb(180, 180, 180);
-        background-color: black;
-        selection-background-color: rgb(64, 64, 64);
-        selection-color: rgb(0, 255, 0);
-  }
-
-  /* days in other months */
-  /* navigation bar */
-QCalendarWidget QWidget#qt_calendar_navigationbar
-{
-  background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop: 0 #cccccc, stop: 1 #333333);
+background-color: rgb(25, 135, 84);
 }
-
-QCalendarWidget QAbstractItemView:disabled
-{
-color: rgb(64, 64, 64);
+QCalendarWidget QAbstractItemView:enabled {
+selection-color: rgb(13, 110, 253);
+selection-background-color: rgb(248, 249, 250);
+}
+QCalendarWidget QWidget#qt_calendar_navigationbar {
+background-color:  rgb(25, 135, 84);
 }</string>
         </property>
         <property name="alignment">
@@ -1222,7 +1181,10 @@ background-color: rgb(11,94,215);
         </property>
         <property name="font">
          <font>
+          <family>Trebuchet MS</family>
           <pointsize>12</pointsize>
+          <weight>50</weight>
+          <bold>false</bold>
          </font>
         </property>
         <property name="styleSheet">
@@ -1436,8 +1398,8 @@ background-color: rgb(255, 255, 255);</string>
          <rect>
           <x>30</x>
           <y>100</y>
-          <width>640</width>
-          <height>360</height>
+          <width>740</width>
+          <height>460</height>
          </rect>
         </property>
         <property name="sizePolicy">
@@ -1551,10 +1513,10 @@ font-size: 11pt;
        <widget class="QPushButton" name="addPlanButton">
         <property name="geometry">
          <rect>
-          <x>540</x>
-          <y>43</y>
-          <width>130</width>
-          <height>30</height>
+          <x>630</x>
+          <y>45</y>
+          <width>140</width>
+          <height>32</height>
          </rect>
         </property>
         <property name="font">
@@ -1588,10 +1550,10 @@ background-color: rgb(21, 115, 71)
        <widget class="QFrame" name="addPlanButtonFrame">
         <property name="geometry">
          <rect>
-          <x>537</x>
-          <y>40</y>
-          <width>136</width>
-          <height>36</height>
+          <x>627</x>
+          <y>42</y>
+          <width>146</width>
+          <height>38</height>
          </rect>
         </property>
         <property name="styleSheet">
@@ -1609,9 +1571,9 @@ background-color: rgb(255,255,255);</string>
         <property name="geometry">
          <rect>
           <x>200</x>
-          <y>43</y>
+          <y>45</y>
           <width>150</width>
-          <height>30</height>
+          <height>32</height>
          </rect>
         </property>
         <property name="font">
@@ -1695,9 +1657,9 @@ border: 2px solid rgb(143,184,243);
         <property name="geometry">
          <rect>
           <x>30</x>
-          <y>43</y>
+          <y>45</y>
           <width>150</width>
-          <height>30</height>
+          <height>32</height>
          </rect>
         </property>
         <property name="font">
@@ -1739,10 +1701,10 @@ border: 2px solid rgb(143,184,243);
        <widget class="QFrame" name="removePlanButtonFrame">
         <property name="geometry">
          <rect>
-          <x>387</x>
-          <y>40</y>
-          <width>136</width>
-          <height>36</height>
+          <x>467</x>
+          <y>42</y>
+          <width>146</width>
+          <height>38</height>
          </rect>
         </property>
         <property name="styleSheet">
@@ -1759,10 +1721,10 @@ background-color: rgb(255,255,255);</string>
        <widget class="QPushButton" name="removePlanButton">
         <property name="geometry">
          <rect>
-          <x>390</x>
-          <y>43</y>
-          <width>130</width>
-          <height>30</height>
+          <x>470</x>
+          <y>45</y>
+          <width>140</width>
+          <height>32</height>
          </rect>
         </property>
         <property name="font">
