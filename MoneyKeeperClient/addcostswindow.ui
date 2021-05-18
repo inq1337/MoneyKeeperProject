@@ -15,11 +15,10 @@
   </property>
   <property name="styleSheet">
    <string notr="true">QDialog {
-   background-color: white;
-   border: 2px solid;
-   border-radius: 6px;
-   border-color: rgb(103, 170, 241);
-   color:rgb(0, 0, 0);
+background-color: white;
+border: 2px solid rgb(13,110,253);
+border-radius: 6px;
+color:rgb(0, 0, 0);
 }</string>
   </property>
   <property name="modal">
@@ -360,7 +359,7 @@ p, li { white-space: pre-wrap; }
      <x>27</x>
      <y>253</y>
      <width>156</width>
-     <height>28</height>
+     <height>31</height>
     </rect>
    </property>
    <property name="styleSheet">
@@ -380,7 +379,7 @@ background-color: rgb(255,255,255);</string>
      <x>217</x>
      <y>252</y>
      <width>156</width>
-     <height>28</height>
+     <height>31</height>
     </rect>
    </property>
    <property name="styleSheet">

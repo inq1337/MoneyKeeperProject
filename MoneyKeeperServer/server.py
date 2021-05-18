@@ -1,5 +1,4 @@
 from flask import Flask, request
-from random import randint
 import json, os
 
 
@@ -24,10 +23,18 @@ def write_to_json():
         write_file.close()
 
 
-def add_user(login, password: str, user_id: int):
-    global users_base
+def add_user(login, password: str):
+    global users_base, max_user_id
+    for user in users_base:
+        if user['login'] == login:
+            return 'already exists'
+    
+    user_id = max_user_id + 1
+    max_user_id += 1
     users_base += [{"id": user_id, "login": login, "password": password, "data": list(), "plans": list()}]
     write_to_json()
+    
+    return str(user_id)
 
 
 def add_cost(user_id, cost_id, cost_sum: int, cost_date, cost_category, cost_comment: str):
@@ -100,28 +107,19 @@ def remove_plan(user_id, plan_category):
 
 
 read_json()
+max_user_id = 0
+for user in users_base:
+    if user['id'] > max_user_id:
+        max_user_id = int(user['id'])
+
 app = Flask(__name__)
 
 @app.route("/register", methods=['GET'])
 def register_f():
     login = request.args.get('login')
     password = request.args.get('password')
-    existence = True
-    while existence:
-        user_id = randint(1, 10000)
-        for i in range(len(users_base)):
-            if users_base[i]["id"] == user_id:
-                break
-        else:
-            existence = False
-                
-    for i in range(len(users_base)):
-        if users_base[i]["login"] == login:
-            return 'alreadyExists'
-
-    add_user(login, password, user_id)
     
-    return str(user_id)
+    return add_user(login, password)
 
 
 @app.route("/login", methods=['GET'])
@@ -129,10 +127,10 @@ def login_f():
     login = request.args.get('login')
     password = request.args.get('password')
                 
-    for i in range(len(users_base)):
-        if users_base[i]['login'] == login:
-            if users_base[i]['password'] == password:
-                return str(users_base[i]['id'])
+    for user in users_base:
+        if user['login'] == login:
+            if user['password'] == password:
+                return str(user['id'])
             else:
                 return 'wrong password'
             

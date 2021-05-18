@@ -86,9 +86,9 @@ private slots:
 
     void on_exitButton_clicked();
 
-    void initializeChartColors();
-
     void readUserInfo();
+
+    void clearAllLabels();
 
     void clearAll();
 
@@ -118,8 +118,6 @@ private slots:
 
     void reloadAllData();
 
-    void logIn();
-
     void removeCostRequest(int costID);
 
     void addPlanRequest(int sum, QString category);
@@ -132,12 +130,18 @@ private slots:
 
     void reloadDataRequestFinished(QNetworkReply *reply);
 
-    void updateAllRequestFinished(QNetworkReply* reply);
+    void addCost(QString category, QString comment, QString date, int sum);
+
+    void createAllManagers();
+
+    void createMessageBox(QString reply);
+
+    void test();
 
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
-
+    bool needShow = false;
 
 private:
     Ui::MainWindow *ui;
@@ -150,7 +154,19 @@ private:
 
     QMap<QString, int> costsTypeCount;
 
-    QMap<QString, QString> chartColors;
+    QMap<QString, QString> chartColors {
+        //all with 300 material.io/resources/color
+        {"Продукты", "#4fc3f7"},         //light blue
+        {"Всё для дома", "#af4448"},     //red (dark)
+        {"Кафе", "#c7a4ff"},             //deep purple (light)
+        {"Коммун. услуги", "#883997"},   //purple (dark)
+        {"Транспорт", "#7986cb"},        //indigo
+        {"Здоровье", "#81c784"},         //green
+        {"Красота", "#ffb74d"},          //orange
+        {"Одежда", "#009faf"},           //cyan (dark)
+        {"Досуг", "#ff8a65"},            //deep orange
+        {"Прочее", "#62757f"}           //grey (dark)
+    };
 
     QChart *chart;
 
@@ -160,15 +176,17 @@ private:
 
     QStandardItemModel *costsTableModel, *planTableModel;
 
-    QNetworkAccessManager *manager;
+    QNetworkAccessManager *reloadAllManager, *addCostManager,
+    *removeCostManager, *addPlanManager, *removePlanManager,
+    *authManager, *regManager;
 
     QNetworkRequest request;
 
-    QString answer, login, password;
+    QString login, password;
 
     QString server = "http://localhost:5000/";
 
-    int userID = 0;
+    int userID = 0, maxCostID = 0;
 
     QString primaryButtonFrameFocusStyle = "QFrame{"
     "border-style: solid;"

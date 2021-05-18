@@ -17,6 +17,12 @@ public:
     explicit addCostsWindow(QWidget *parent = nullptr);
     ~addCostsWindow();
 
+    bool isAdded = false;
+
+    int tempID, tempSum;
+
+    QString tempDate, tempCategory, tempComment;
+
 private slots:
     void on_addCAddButton_pressed();
 
@@ -29,8 +35,6 @@ private slots:
     void on_addCRejectButton_clicked();
 
     void on_addCAddButton_clicked();
-
-    void addRequestFinished(QNetworkReply *reply);
 
 private:
     Ui::addCostsWindow *ui;
@@ -55,10 +59,6 @@ private:
     "border: none;"
     "background-color: white;"
     "}";
-
-    QNetworkAccessManager *manager;
-
-    QNetworkRequest request;
 };
 
 #endif // ADDCOSTSWINDOW_H

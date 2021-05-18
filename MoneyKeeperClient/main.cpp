@@ -1,7 +1,10 @@
 #include "mainwindow.h"
-
 #include <QApplication>
-int userId;
+#include <QFile>
+#include <QJsonObject>
+#include <QJsonDocument>
+#include <QJsonArray>
+
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
@@ -9,11 +12,6 @@ int main(int argc, char *argv[])
     w.show();
     return a.exec();
 }
-
-#include <QFile>
-#include <QJsonObject>
-#include <QJsonDocument>
-#include <QJsonArray>
 
 QJsonObject openUserInfo() {
     QFile infoFile;

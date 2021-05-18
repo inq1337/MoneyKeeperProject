@@ -10,16 +10,20 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
 {
-    initializeChartColors();
     readUserInfo();
-
     chart = new QChart();
-    ui->setupUi(this);
-    if(userID) {
-        reloadAllData();
-        ui->stackedWidget->setCurrentIndex(2);
-    }
+    createAllManagers();
 
+    ui->setupUi(this);
+    ui->centralwidget->hide();
+    if (userID) {
+        QString req = server + "login?" + "login=" + login + "&password=" + password;
+        request.setUrl(QUrl(req));
+        authManager->get(request);
+    }
+    else {
+        ui->centralwidget->show();
+    }
     QDate currentDate = QDate::currentDate();
     startDay.setDate(currentDate.year(), currentDate.month(), 1);
     createNewSelectedData();
@@ -36,20 +40,62 @@ MainWindow::MainWindow(QWidget *parent)
     ui->addPlanSumLine->setValidator(new QIntValidator(1, 999999, this));
 }
 
-void MainWindow::initializeChartColors() {
-    //all with 300 material.io/resources/color
-    chartColors["Продукты"] = "#4fc3f7";         //light blue
-    chartColors["Всё для дома"] = "#af4448";     //red (dark)
-    chartColors["Кафе"] = "#c7a4ff";             //deep purple (light)
-    chartColors["Коммун. услуги"] = "#883997";   //purple (dark)
-    chartColors["Транспорт"] = "#7986cb";        //indigo
-    chartColors["Здоровье"] = "#81c784";         //green
-    chartColors["Красота"] = "#ffb74d";          //orange
-    chartColors["Одежда"] = "#009faf";           //cyan (dark)
-    chartColors["Досуг"] = "#ff8a65";            //deep orange
-    chartColors["Прочее"] = "#62757f";           //grey (dark)
-}
+void MainWindow::createAllManagers() {
+    reloadAllManager = new QNetworkAccessManager();
+    addCostManager = new QNetworkAccessManager();
+    removeCostManager = new QNetworkAccessManager();
+    addPlanManager = new QNetworkAccessManager();
+    regManager = new QNetworkAccessManager();
+    removePlanManager = new QNetworkAccessManager();
+    authManager = new QNetworkAccessManager();
 
+    QObject::connect(reloadAllManager, SIGNAL(finished(QNetworkReply*)),
+        this, SLOT(reloadDataRequestFinished(QNetworkReply*)));
+    QObject::connect(regManager, SIGNAL(finished(QNetworkReply*)),
+        this, SLOT(regRequestFinished(QNetworkReply*)));
+    QObject::connect(authManager, SIGNAL(finished(QNetworkReply*)),
+        this, SLOT(authRequestFinished(QNetworkReply*)));
+
+    QObject::connect(addCostManager, &QNetworkAccessManager::finished,
+        this, [=](QNetworkReply *reply) {
+            if (reply->error()) {
+                QMessageBox::information(this, "Ок", reply->errorString());
+                return;
+            }
+            QString answer = reply->readAll();
+        }
+    );
+    QObject::connect(removeCostManager, &QNetworkAccessManager::finished,
+        this, [=](QNetworkReply *reply) {
+            if (reply->error()) {
+                createMessageBox(reply->errorString());
+                return;
+            }
+            QString answer = reply->readAll();
+        }
+    );
+    QObject::connect(addPlanManager, &QNetworkAccessManager::finished,
+        this, [=](QNetworkReply *reply) {
+            if (reply->error()) {
+                createMessageBox(reply->errorString());
+                return;
+            }
+            QString answer = reply->readAll();
+        }
+    );
+    QObject::connect(removePlanManager, &QNetworkAccessManager::finished,
+        this, [=](QNetworkReply *reply) {
+            if (reply->error()) {
+                createMessageBox(reply->errorString());
+                return;
+            }
+            QString answer = reply->readAll();
+        }
+    );
+}
+void MainWindow::test() {
+    this->hide();
+}
 void MainWindow::readUserInfo() {
     login = openUserInfo().value("login").toString();
     password = openUserInfo().value("password").toString();
@@ -73,8 +119,8 @@ void MainWindow::createNewChart() {
     chart->legend()->setLabelColor(Qt::black);
     chart->legend()->detachFromChart();
     chart->legend()->setGeometry(QRectF(440, 10, 260, 190));
-    chart->setMinimumSize(QSize(740, 250));
-    chart->setMaximumSize(QSize(740, 250));
+    chart->setMinimumSize(ui->chartWidget->size());
+    chart->setMaximumSize(ui->chartWidget->size());
     chart->setBackgroundRoundness(0);
 }
 
@@ -231,30 +277,33 @@ void MainWindow::on_addCostsButton_clicked() {
     addCostsWindow addCosts;
     addCosts.setModal(true);
     addCosts.exec();
-
-    manager = new QNetworkAccessManager();
-    QObject::connect(manager, SIGNAL(finished(QNetworkReply*)),
-        this, SLOT(updateAllRequestFinished(QNetworkReply*)));
-
-    QString req = server + "getAll?" + "userID=" + QString::number(userID) + "&password=" + password;
-    request.setUrl(QUrl(req));
-    manager->get(request);
+    if (addCosts.isAdded) {
+        addCost(addCosts.tempCategory, addCosts.tempComment,
+                addCosts.tempDate, addCosts.tempSum);
+    }
 }
 
-void MainWindow::updateAllRequestFinished(QNetworkReply* reply) {
-    if (reply->error()) {
-        qDebug() << reply->errorString();
-        return;
-    }
-    QString str = reply->readAll();
-    QJsonDocument jsonResponse = QJsonDocument::fromJson(str.toUtf8());
-    fullUserData = jsonResponse.object();
-    userCostsData = fullUserData.value("data").toArray();
-    userPlansData = fullUserData.value("plans").toArray();
+void MainWindow::addCost(QString category, QString comment, QString date, int sum) {
+    QJsonObject addCostObj;
+    int costID = maxCostID + 1;
+    maxCostID += 1;
+    addCostObj.insert("category", category);
+    addCostObj.insert("comment", comment);
+    addCostObj.insert("date", date);
+    addCostObj.insert("id", costID);
+    addCostObj.insert("sum", sum);
+    userCostsData.append(addCostObj);
     addToSelectedData();
     updateMap();
     addToChart();
     updateTable();
+
+    QString req = "http://localhost:5000/addCosts?userID=" + QString::number(userID) + "&id="
+            + QString::number(costID) + "&sum=" + QString::number(sum) + "&date="
+            + date + "&category=" + category + "&comment=" + comment;
+
+    request.setUrl(QUrl(req));
+    addCostManager->get(request);
 }
 
 void MainWindow::on_removeCostsButton_clicked() {
@@ -281,21 +330,10 @@ void MainWindow::on_removeCostsButton_clicked() {
 }
 
 void MainWindow::removeCostRequest(int costID) {
-    manager = new QNetworkAccessManager();
-    QObject::connect(manager, &QNetworkAccessManager::finished,
-        this, [=](QNetworkReply *reply) {
-            if (reply->error()) {
-                qDebug() << reply->errorString();
-                return;
-            }
-            answer = reply->readAll();
-        }
-    );
-
     QString req = server + "removeCost?" + "userID=" + QString::number(userID)
             + "&costID=" + QString::number(costID);
     request.setUrl(QUrl(req));
-    manager->get(request);
+    removeCostManager->get(request);
 }
 
 void MainWindow::on_changeDataRangeButton_clicked() {
@@ -360,21 +398,10 @@ void MainWindow::on_addPlanButton_clicked() {
 }
 
 void MainWindow::addPlanRequest(int sum, QString category) {
-    manager = new QNetworkAccessManager();
-    QObject::connect(manager, &QNetworkAccessManager::finished,
-        this, [=](QNetworkReply *reply) {
-            if (reply->error()) {
-                qDebug() << reply->errorString();
-                return;
-            }
-            answer = reply->readAll();
-        }
-    );
-
     QString req = server + "addPlan?" + "userID=" + QString::number(userID) + "&category="
                 + category + "&sum=" + QString::number(sum);
     request.setUrl(QUrl(req));
-    manager->get(request);
+    addPlanManager->get(request);
 }
 
 void MainWindow::on_removePlanButton_clicked() {
@@ -397,97 +424,82 @@ void MainWindow::on_removePlanButton_clicked() {
 }
 
 void MainWindow::removePlanRequest(QString category) {
-    manager = new QNetworkAccessManager();
-    QObject::connect(manager, &QNetworkAccessManager::finished,
-        this, [=](QNetworkReply *reply) {
-            if (reply->error()) {
-                qDebug() << reply->errorString();
-                return;
-            }
-            answer = reply->readAll();
-        }
-    );
-
     QString req = server + "removePlan?" + "userID=" + QString::number(userID) + "&category=" + category;
     request.setUrl(QUrl(req));
-    manager->get(request);
+    removePlanManager->get(request);
 }
 
 void MainWindow::on_authEnterButton_clicked() {
-    login = ui->authLoginLine->text();
-    password = ui->authPasswordLine->text();
-    logIn();
-}
-
-void MainWindow::logIn() {
-    manager = new QNetworkAccessManager();
-    QObject::connect(manager, SIGNAL(finished(QNetworkReply*)),
-        this, SLOT(authRequestFinished(QNetworkReply*)));
-
-    QString req = server + "login?" + "login=" + login + "&password=" + password;
-    request.setUrl(QUrl(req));
-    manager->get(request);
+    if (ui->authPasswordLine->text().length() < 6) {
+        ui->authWrongLabel->setText("Неверный пароль");
+        ui->authPasswordLine->clear();
+    }
+    else if (ui->authLoginLine->text().length() < 4) {
+        ui->authWrongLabel->setText("Нет пользователя с таким именем");
+        ui->authLoginLine->clear();
+    }
+    else {
+        login = ui->authLoginLine->text();
+        password = ui->authPasswordLine->text();
+        QString req = server + "login?" + "login=" + login + "&password=" + password;
+        request.setUrl(QUrl(req));
+        authManager->get(request);
+    }
 }
 
 void MainWindow::on_regEnterButton_clicked() {
-    login = ui->regLoginLine->text();
-    password = ui->regPasswordLine->text();
-    QString repeatPassword = ui->regRepeatPasswordLine->text();
-
-    if (login.length() < 4) {
+    if (ui->regLoginLine->text().length() < 4) {
         ui->regWrongLabel->setText("Минимальная длина логина — 4 символа");
         ui->regLoginLine->clear();
     }
-    else if (password.length() < 6) {
+    else if (ui->regPasswordLine->text().length() < 6) {
         ui->regWrongLabel->setText("Минимальная длина пароля — 6 символов");
         ui->regPasswordLine->clear();
         ui->regRepeatPasswordLine->clear();
     }
-    else if (password != repeatPassword) {
+    else if (ui->regPasswordLine->text() !=
+             ui->regRepeatPasswordLine->text()) {
         ui->regWrongLabel->setText("Пароли не совпадают");
         ui->regPasswordLine->clear();
         ui->regRepeatPasswordLine->clear();
     }
     else {
-        manager = new QNetworkAccessManager();
-        QObject::connect(manager, SIGNAL(finished(QNetworkReply*)),
-            this, SLOT(regRequestFinished(QNetworkReply*)));
+        login = ui->regLoginLine->text();
+        password = ui->regPasswordLine->text();
 
         QString req = server + "register?" + "login=" + login + "&password=" + password;
         request.setUrl(QUrl(req));
-        manager->get(request);
+        regManager->get(request);
     }
 }
 
 void MainWindow::regRequestFinished(QNetworkReply *reply) {
     if (reply->error()) {
-        qDebug() << reply->errorString();
+        createMessageBox(reply->errorString());
         return;
     }
-    answer = reply->readAll();
+    QString answer = reply->readAll();
 
-    if (answer == "alreadyExists") {
+    if (answer == "already exists") {
         ui->regWrongLabel->setText("Логин занят");
         ui->regLoginLine->clear();
     }
     else {
-        userID = answer.toUInt();
-        addUserInfo(login, password, answer.toInt());
-        ui->regLoginLine->clear();
-        ui->regPasswordLine->clear();
-        ui->regRepeatPasswordLine->clear();
-        ui->regWrongLabel->clear();
+        clearAllLabels();
         createNewChart();
-        ui->stackedWidget->setCurrentIndex(2);
+        ui->stackedWidget->setCurrentIndex(0);
     }
 }
 
 void MainWindow::authRequestFinished(QNetworkReply *reply) {
     if (reply->error()) {
-        qDebug() << reply->errorString();
+        if (ui->centralwidget->isHidden()) {
+            ui->centralwidget->show();
+        }
+        createMessageBox(reply->errorString());
         return;
     }
-    answer = reply->readAll();
+    QString answer = reply->readAll();
 
     if (answer == "no such user") {
         ui->authWrongLabel->setText("Нет пользователя с таким именем");
@@ -502,26 +514,23 @@ void MainWindow::authRequestFinished(QNetworkReply *reply) {
         addUserInfo(login, password, answer.toInt());
         readUserInfo();
         reloadAllData();
-        ui->authLoginLine->clear();
-        ui->authPasswordLine->clear();
-        ui->authWrongLabel->clear();
+        clearAllLabels();
         ui->stackedWidget->setCurrentIndex(2);
+        if (ui->centralwidget->isHidden()) {
+            ui->centralwidget->show();
+        }
     }
 }
 
 void MainWindow::reloadAllData() {
-    manager = new QNetworkAccessManager();
-    QObject::connect(manager, SIGNAL(finished(QNetworkReply*)),
-        this, SLOT(reloadDataRequestFinished(QNetworkReply*)));
-
     QString req = server + "getAll?" + "userID=" + QString::number(userID) + "&password=" + password;
     request.setUrl(QUrl(req));
-    manager->get(request);
+    reloadAllManager->get(request);
 }
 
 void MainWindow::reloadDataRequestFinished(QNetworkReply* reply) {
     if (reply->error()) {
-        qDebug() << reply->errorString();
+        createMessageBox(reply->errorString());
         return;
     }
     QString str = reply->readAll();
@@ -529,6 +538,12 @@ void MainWindow::reloadDataRequestFinished(QNetworkReply* reply) {
     fullUserData = jsonResponse.object();
     userCostsData = fullUserData.value("data").toArray();
     userPlansData = fullUserData.value("plans").toArray();
+    for (int i = 0; i < userCostsData.count(); ++i) {
+        int tempCostID = userCostsData.at(i).toObject().value("id").toInt();
+        if (tempCostID > maxCostID) {
+            maxCostID = tempCostID;
+        }
+    }
     createNewSelectedData();
     updateMap();
     updateTable();
@@ -542,12 +557,24 @@ void MainWindow::on_updateButton_clicked() {
 
 void MainWindow::on_exitButton_clicked() {
     removeUserInfo();
+    clearAllLabels();
     clearAll();
     ui->stackedWidget->setCurrentIndex(0);
 }
 
+void MainWindow::clearAllLabels() {
+    ui->authLoginLine->clear();
+    ui->authPasswordLine->clear();
+    ui->authWrongLabel->clear();
+    ui->regLoginLine->clear();
+    ui->regPasswordLine->clear();
+    ui->regRepeatPasswordLine->clear();
+    ui->regWrongLabel->clear();
+}
+
 void MainWindow::clearAll() {
     userID = 0;
+    maxCostID = 0;
     password = "";
     login = "";
     chart->removeAllSeries();
@@ -563,13 +590,15 @@ void MainWindow::clearAll() {
     while (userPlansData.count()) {
         userPlansData.pop_back();
     }
-    ui->authLoginLine->clear();
-    ui->authPasswordLine->clear();
-    ui->authWrongLabel->clear();
-    ui->regLoginLine->clear();
-    ui->regPasswordLine->clear();
-    ui->regRepeatPasswordLine->clear();
-    ui->regWrongLabel->clear();
+}
+
+void MainWindow::createMessageBox(QString reply) {
+    if (reply == "Connection refused") {
+        QMessageBox::warning(this, "Ошибка", "Не удалось подключиться к серверу");
+    }
+    else {
+    QMessageBox::critical(this, "Ошибка", reply);
+    }
 }
 
 void MainWindow::on_authToRegButton_clicked() {

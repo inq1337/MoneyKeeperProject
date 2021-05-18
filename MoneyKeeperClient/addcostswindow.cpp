@@ -12,6 +12,16 @@ addCostsWindow::addCostsWindow(QWidget *parent) :
     ui->setupUi(this);
 
     setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
+    const QRect rect(QPoint(0,0), this->geometry().size());
+    QBitmap b(rect.size());
+    b.fill(QColor(Qt::color0));
+    QPainter painter(&b);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setBrush(Qt::color1);
+    painter.drawRoundedRect(rect, 6, 6, Qt::AbsoluteSize);
+    painter.end();
+    this->setMask(b);
+
     ui->addCChooseDate->setDate(QDate::currentDate());
     ui->addCSumLine->setValidator(new QIntValidator(1, 999999, this));
 }
@@ -21,30 +31,11 @@ addCostsWindow::~addCostsWindow() {
 }
 
 void addCostsWindow::on_addCAddButton_clicked() {
-    std::srand(time(nullptr));
-    int tempID = rand();
-    int tempSum = ui->addCSumLine->text().toInt();
-    QString tempDate = ui->addCChooseDate->text();
-    QString tempCategory = ui->addCCategoryBox->currentText();
-    QString tempComment = ui->addCComment->toPlainText();
-
-    QJsonObject userInfo = openUserInfo();
-    QString userID = QString::number(userInfo.value("id").toInt());
-    manager = new QNetworkAccessManager();
-    QObject::connect(manager, SIGNAL(finished(QNetworkReply*)),
-        this, SLOT(addRequestFinished(QNetworkReply*)));
-
-    QString req = "http://localhost:5000/addCosts?userID=" + userID + "&id=" + QString::number(tempID)
-            + "&sum=" + QString::number(tempSum) + "&date=" + tempDate + "&category=" + tempCategory + "&comment=" + tempComment;
-
-    request.setUrl(QUrl(req));
-    manager->get(request);
-}
-void addCostsWindow::addRequestFinished(QNetworkReply *reply) {
-    if (reply->error()) {
-        qDebug() << reply->errorString();
-        return;
-    }
+    tempSum = ui->addCSumLine->text().toInt();
+    tempDate = ui->addCChooseDate->text();
+    tempCategory = ui->addCCategoryBox->currentText();
+    tempComment = ui->addCComment->toPlainText();
+    isAdded = true;
     this->close();
 }
 
