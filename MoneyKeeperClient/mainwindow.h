@@ -120,9 +120,9 @@ private slots:
 
     void removeCostRequest(int costID);
 
-    void addPlanRequest(int sum, QString category);
+    void addPlanRequest(int sum, int planID, QString category);
 
-    void removePlanRequest(QString category);
+    void removePlanRequest(QString planID);
 
     void regRequestFinished(QNetworkReply *reply);
 
@@ -136,14 +136,16 @@ private slots:
 
     void createMessageBox(QString reply);
 
-    void test();
-
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
     bool needShow = false;
 
 private:
+    const int maxPossibleUserID = 10000;
+
+    const int maxPossibleItemID = 10000;
+
     Ui::MainWindow *ui;
 
     QDate startDay;
@@ -186,7 +188,7 @@ private:
 
     QString server = "http://localhost:5000/";
 
-    int userID = 0, maxCostID = 0;
+    int userID = 0, maxCostID = 0, maxPlanID = 0, insideUserID = 0;
 
     QString primaryButtonFrameFocusStyle = "QFrame{"
     "border-style: solid;"
