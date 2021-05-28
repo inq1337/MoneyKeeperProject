@@ -1406,13 +1406,9 @@ background-color: rgb(255, 255, 255);</string>
          <string notr="true">QTableView {
 color: black;
 background-color: rgb(255,255,255);
-alternate-background-color :rgb(242,242,242);
 selection-background-color: white;
 selection-color: rgb(13,110,253);
 font-weight: 30;
-}
-QTableView:item{
-border-bottom : 1px solid rgb(222,226,230);
 }
 QHeaderView:section {
 border:none;
@@ -1447,7 +1443,7 @@ font-size: 11pt;
          <bool>false</bool>
         </property>
         <property name="alternatingRowColors">
-         <bool>true</bool>
+         <bool>false</bool>
         </property>
         <property name="selectionMode">
          <enum>QAbstractItemView::SingleSelection</enum>
@@ -1472,6 +1468,9 @@ font-size: 11pt;
         </attribute>
         <attribute name="horizontalHeaderHighlightSections">
          <bool>false</bool>
+        </attribute>
+        <attribute name="horizontalHeaderStretchLastSection">
+         <bool>true</bool>
         </attribute>
         <attribute name="verticalHeaderVisible">
          <bool>false</bool>

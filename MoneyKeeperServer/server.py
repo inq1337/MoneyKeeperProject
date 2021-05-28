@@ -18,6 +18,7 @@ cur.execute("""CREATE TABLE IF NOT EXISTS users(
 """)
 cur = conn.cursor()
 cur.execute("""CREATE TABLE IF NOT EXISTS costs(
+   user_id INT,
    cost_id INT,
    date TEXT,
    category TEXT,
@@ -26,7 +27,7 @@ cur.execute("""CREATE TABLE IF NOT EXISTS costs(
 """)
 cur = conn.cursor()
 cur.execute("""CREATE TABLE IF NOT EXISTS plans(
-   plan_id INT,
+   user_id,
    category TEXT,
    sum INT);
 """)
@@ -35,36 +36,10 @@ cur.execute("""CREATE TABLE IF NOT EXISTS plans(
 max_user_id = 0
 cur.execute("SELECT user_id FROM users;")
 all_results = cur.fetchall()
+print(all_results)
 for user in all_results:
     if user[0] > max_user_id:
         max_user_id = user[0]
-
-
-def optimize_costs_id():
-    cur.execute("SELECT * FROM costs;")
-    costs_arr = cur.fetchall()
-    for i in range(len(costs_arr)):
-        user_id = costs_arr[i][0] // max_possible_user_id
-        curr_id = user_id * max_possible_user_id + i + 1
-        item = costs_arr[i]
-        new_item = (curr_id, item[1], item[2], item[3], item[4])
-        costs_arr[i] = new_item
-    cur.execute("DELETE FROM costs;")
-    cur.executemany("INSERT INTO costs VALUES(?, ?, ?, ?, ?);", costs_arr)
-
-
-def optimize_plans_id():
-    cur.execute("SELECT * FROM plans;")
-    plans_arr = cur.fetchall()
-    for i in range(len(plans_arr)):
-        user_id = plans_arr[i][0] // max_possible_user_id
-        curr_id = user_id * max_possible_user_id + i + 1
-        item = plans_arr[i]
-        new_item = (curr_id, item[1], item[2])
-        plans_arr[i] = new_item
-    cur.execute("DELETE FROM plans;")
-    cur.executemany("INSERT INTO plans VALUES(?, ?, ?);", plans_arr)
-
 
 def check_reg_possibility(user_id: int) -> bool:
     global max_possible_user_id
@@ -114,8 +89,6 @@ def add_user(login, password: str):
         if check_reg_possibility(user_id):
             max_user_id += 1
 
-            optimize_plans_id()
-            optimize_costs_id()
             user = (user_id, login, password)
             cur.execute("INSERT INTO users VALUES(?, ?, ?);", user)
             conn.commit()
@@ -127,8 +100,8 @@ def add_user(login, password: str):
 
 def add_cost(user_id, cost_id, sum: int, date, category, comment: str):
     if user_id_existence(user_id):
-        cost = (cost_id, date, category, sum, comment)
-        cur.execute("INSERT INTO costs VALUES(?, ?, ?, ?, ?);", cost)
+        cost = (user_id, cost_id, date, category, sum, comment)
+        cur.execute("INSERT INTO costs VALUES(?, ?, ?, ?, ?, ?);", cost)
         conn.commit()
         return 'OK'
     else:
@@ -137,36 +110,18 @@ def add_cost(user_id, cost_id, sum: int, date, category, comment: str):
 
 def get_all(user_id: int):
     if user_id_existence(user_id):
-        data_range_min = user_id * max_possible_user_id + 1
-        data_range_max = (user_id + 1) * max_possible_user_id
-        user_costs_arr = []
-
-        for cost_id in range(data_range_min, data_range_max):
-            cur.execute("SELECT * FROM costs WHERE cost_id = ?", (cost_id,))
-            one_res = cur.fetchone()
-            if one_res is None:
-                continue
-            else:
-                user_costs_arr.append(one_res)
-
+        cur.execute("SELECT * FROM costs WHERE user_id = ?", (user_id,))
+        user_costs_raw = cur.fetchall()
         costs = []
-        for cost in user_costs_arr:
-            costs.append({"id": cost[0], "date": cost[1], "category": cost[2], "sum": cost[3], "comment": cost[4]})
-            
-        user_plans_arr = []
-        for plan_id in range(data_range_min, data_range_max):
-            cur.execute("SELECT * FROM plans WHERE plan_id = ?", (plan_id,))
-            one_res = cur.fetchone()
-            if one_res is None:
-                continue
-            else:
-                user_plans_arr.append(one_res)
+        for cost in user_costs_raw:
+            costs.append({"id": cost[1], "date": cost[2], "category": cost[3], "sum": cost[4], "comment": cost[5]})
         
+        cur.execute("SELECT * FROM plans WHERE user_id = ?", (user_id,))
+        user_plans_raw = cur.fetchall()
         plans = []
-        for plan in user_plans_arr:
-            plans.append({"id": plan[0], "category": plan[1], "sum": plan[2]})
+        for plan in user_plans_raw:
+            plans.append({"category": plan[1], "sum": plan[2]})
         
-        print({"data": costs, "plans": plans})
         return {"data": costs, "plans": plans}
     else:
         return 'no such user'
@@ -174,17 +129,17 @@ def get_all(user_id: int):
 
 def remove_cost(user_id, cost_id: int):
     if user_id_existence(user_id):
-        cur.execute("DELETE FROM costs WHERE cost_id = ?;", (cost_id,))
+        cur.execute("DELETE FROM costs WHERE user_id = ? and cost_id = ?;", (user_id, cost_id))
         conn.commit()
 
         return 'OK'
     else:
-        return 'no such user'
+        return 'no such user'        
 
 
-def add_plan(user_id, plan_id, plan_category, sum):
+def add_plan(user_id, category, sum):
     if user_id_existence(user_id):
-        plan = (plan_id, plan_category, sum)
+        plan = (user_id, category, sum)
         cur.execute("INSERT INTO plans VALUES(?, ?, ?);", plan)
         conn.commit()
 
@@ -192,10 +147,9 @@ def add_plan(user_id, plan_id, plan_category, sum):
     else:
         return 'no such user'
 
-def remove_plan(user_id, plan_id):
+def remove_plan(user_id, category):
     if user_id_existence(user_id):
-        print(plan_id)
-        cur.execute("DELETE FROM plans WHERE plan_id = ?;", (plan_id,))
+        cur.execute("DELETE FROM plans WHERE user_id = ? and category = ?;", (user_id, category))
         conn.commit()
 
         return 'OK'
@@ -250,19 +204,18 @@ def remove_cost_f():
 @app.route("/addPlan", methods=['GET'])
 def add_plan_f():
     user_id = int(request.args.get('userID'))
-    plan_id = request.args.get('planID')
     plan_category = request.args.get('category')
     plan_sum = int(request.args.get('sum'))
 
-    return add_plan(user_id, plan_id, plan_category, plan_sum)
+    return add_plan(user_id, plan_category, plan_sum)
 
 
 @app.route("/removePlan", methods=['GET'])
 def remove_plan_f():
     user_id = int(request.args.get('userID'))
-    plan_id = request.args.get('planID')
+    plan_category = request.args.get('category')
 
-    return remove_plan(user_id, plan_id)
+    return remove_plan(user_id, plan_category)
 
 if __name__ == "__main__":
     app.run()

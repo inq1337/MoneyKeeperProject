@@ -93,7 +93,9 @@ void MainWindow::createAllManagers() {
         }
     );
 }
-
+void MainWindow::test() {
+    this->hide();
+}
 void MainWindow::readUserInfo() {
     login = openUserInfo().value("login").toString();
     password = openUserInfo().value("password").toString();
@@ -218,6 +220,7 @@ void MainWindow::updateTable() {
     ui->costsTable->setColumnWidth(2, 105);
     ui->costsTable->setColumnWidth(3, 165);
     ui->costsTable->setColumnWidth(4, 90);
+    ui->costsTable->horizontalHeader()->setStretchLastSection(true);
     ui->costsTable->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
     ui->costsTable->sortByColumn(0, Qt::DescendingOrder);
 }
@@ -281,33 +284,26 @@ void MainWindow::on_addCostsButton_clicked() {
 }
 
 void MainWindow::addCost(QString category, QString comment, QString date, int sum) {
+    QJsonObject addCostObj;
     int costID = maxCostID + 1;
-    if (costID < maxPossibleItemID) {
-        costID = insideUserID + costID;
-        maxCostID += 1;
-        QJsonObject addCostObj;
-        addCostObj.insert("category", category);
-        addCostObj.insert("comment", comment);
-        addCostObj.insert("date", date);
-        addCostObj.insert("id", costID);
-        addCostObj.insert("sum", sum);
-        userCostsData.append(addCostObj);
-        addToSelectedData();
-        updateMap();
-        addToChart();
-        updateTable();
-        updatePlansTable();
+    maxCostID += 1;
+    addCostObj.insert("category", category);
+    addCostObj.insert("comment", comment);
+    addCostObj.insert("date", date);
+    addCostObj.insert("id", costID);
+    addCostObj.insert("sum", sum);
+    userCostsData.append(addCostObj);
+    addToSelectedData();
+    updateMap();
+    addToChart();
+    updateTable();
 
-        QString req = "http://localhost:5000/addCosts?userID=" + QString::number(userID) + "&id="
-                + QString::number(costID) + "&sum=" + QString::number(sum) + "&date="
-                + date + "&category=" + category + "&comment=" + comment;
+    QString req = "http://localhost:5000/addCosts?userID=" + QString::number(userID) + "&id="
+            + QString::number(costID) + "&sum=" + QString::number(sum) + "&date="
+            + date + "&category=" + category + "&comment=" + comment;
 
-        request.setUrl(QUrl(req));
-        addCostManager->get(request);
-    }
-    else {
-        createMessageBox(QString("Слишком много статей расходов добавлено. Невозможно добавить ещё."));
-    }
+    request.setUrl(QUrl(req));
+    addCostManager->get(request);
 }
 
 void MainWindow::on_removeCostsButton_clicked() {
@@ -348,14 +344,56 @@ void MainWindow::on_changeDataRangeButton_clicked() {
     createNewChart();
     chartview->update();
 }
+class ProgressBarDelegate : public QStyledItemDelegate {
+public:
+    ProgressBarDelegate( QObject* parent = 0 );
+    void paint( QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index ) const;
+};
+
+ProgressBarDelegate::ProgressBarDelegate( QObject* parent ) : QStyledItemDelegate( parent ) {
+}
+
+void ProgressBarDelegate::paint(
+    QPainter* painter,
+    const QStyleOptionViewItem& option,
+    const QModelIndex& index
+) const {
+    int progress = index.data().toInt();
+
+    QString style = "QProgressBar { border: 1px solid rgb(206,212,218); border-radius: 6px; }";
+    style += "QProgressBar::chunk { background-color: rgb(13,110,253); border-radius: 5px; }";
+
+    QSize barSize;
+    barSize.setHeight(option.rect.height() - 6);
+    barSize.setWidth(option.rect.width());
+
+    QPoint barPosition;
+    barPosition.setX(option.rect.left());
+    barPosition.setY(option.rect.top() + 2);
+
+    QProgressBar renderer;
+    renderer.resize(barSize);
+    renderer.setMinimum(0);
+    renderer.setMaximum(100);
+    renderer.setValue(progress);
+    renderer.setAlignment(Qt::AlignCenter);
+    renderer.setFont(QFont("Trebuchet MS", 10, QFont::Bold));
+    renderer.setStyleSheet(style);
+    renderer.setContentsMargins(-10, -10, -10, -10);
+
+    painter->save();
+    painter->translate(barPosition);
+    renderer.render(painter);
+    painter->restore();
+}
 
 void MainWindow::updatePlansTable() {
     planTableModel = new QStandardItemModel(nullptr);
-    planTableModel->setHorizontalHeaderLabels(QStringList()<<"ID"<<""<<"Категория"<<"Потрачено"<<"");
+    planTableModel->setHorizontalHeaderLabels(QStringList()<<""<<"Категория"<<"Потрачено"<<"В процентах");
 
     for (int i = 0; i < userPlansData.count(); ++i) {
-        QString planID = QString::number(userPlansData.at(i).toObject().value("id").toInt());
         QString category = userPlansData.at(i).toObject().value("category").toString();
+        int sum = userPlansData.at(i).toObject().value("sum").toInt();
         int spentMoney;
         if (costsTypeCount.contains(category)) {
             spentMoney = costsTypeCount[category];
@@ -363,23 +401,21 @@ void MainWindow::updatePlansTable() {
         else {
             spentMoney = 0;
         }
-        int sum = userPlansData.at(i).toObject().value("sum").toInt();
         int spentPercentage = round(((double)spentMoney / (double)sum)*100);
 
-        QStandardItem* idCol = new QStandardItem(planID);
         QStandardItem* spacingCol = new QStandardItem("");
         QStandardItem* categoryCol = new QStandardItem(category);
         QStandardItem* spentCol = new QStandardItem(QString::number(spentMoney)+ "/" + QString::number(sum));
-        QStandardItem* spentPecentageCol = new QStandardItem(QString::number(spentPercentage) + "%");
-        planTableModel->appendRow(QList<QStandardItem*>()<<idCol<<spacingCol<<categoryCol<<spentCol<<spentPecentageCol);
+        QStandardItem* spentPercentageCol = new QStandardItem(QString::number(spentPercentage));
+        planTableModel->appendRow(QList<QStandardItem*>()<<spacingCol<<categoryCol<<spentCol<<spentPercentageCol);
     }
     ui->planTable->setModel(planTableModel);
+    ui->planTable->setItemDelegateForColumn(3, new ProgressBarDelegate);
     ui->planTable->horizontalHeader()->setDefaultAlignment(Qt::AlignJustify);
     ui->planTable->horizontalHeader()->setSectionResizeMode(QHeaderView::Fixed);
-    ui->planTable->setColumnHidden(0, true);
-    ui->planTable->setColumnWidth(1, 2);
+    ui->planTable->setColumnWidth(0, 2);
+    ui->planTable->setColumnWidth(1, 150);
     ui->planTable->setColumnWidth(2, 150);
-    ui->planTable->setColumnWidth(3, 150);
     ui->planTable->horizontalHeader()->setStretchLastSection(true);
 }
 
@@ -401,27 +437,18 @@ void MainWindow::on_addPlanButton_clicked() {
     int sum = ui->addPlanSumLine->text().toInt();
 
     if (allowAddingPlan(category, sum)) {
-        int planID = maxPlanID + 1;
-        if (planID < maxPossibleItemID) {
-            planID = insideUserID + planID;
-            maxPlanID += 1;
-            QJsonObject onePlanAddition;
-            onePlanAddition.insert("id", planID);
-            onePlanAddition.insert("category", category);
-            onePlanAddition.insert("sum", sum);
-            userPlansData.append(onePlanAddition);
-            updatePlansTable();
-            addPlanRequest(sum, planID, category);
-        }
-        else {
-            createMessageBox(QString("Невозможно добавить план"));
-        }
+        QJsonObject onePlanAddition;
+        onePlanAddition.insert("category", category);
+        onePlanAddition.insert("sum", sum);
+        userPlansData.append(onePlanAddition);
+        updatePlansTable();
+        addPlanRequest(sum, category);
     }
 }
 
-void MainWindow::addPlanRequest(int sum, int planID, QString category) {
-    QString req = server + "addPlan?" + "userID=" + QString::number(userID) + "&planID=" + QString::number(planID)
-            + "&category=" + category + "&sum=" + QString::number(sum);
+void MainWindow::addPlanRequest(int sum, QString category) {
+    QString req = server + "addPlan?" + "userID=" + QString::number(userID) + "&category="
+                + category + "&sum=" + QString::number(sum);
     request.setUrl(QUrl(req));
     addPlanManager->get(request);
 }
@@ -430,24 +457,23 @@ void MainWindow::on_removePlanButton_clicked() {
     QItemSelectionModel *select = ui->planTable->selectionModel();
     if (select->hasSelection()) {
         QModelIndex index = select->currentIndex();
-        QString tableName = index.sibling(index.row(), 2).data().toString();
+        QString tableName = index.sibling(index.row(), 1).data().toString();
 
         ui->planTable->model()->removeRow(index.row());
 
         for (int i = 0; i < userPlansData.count(); ++i) {
             QString jsonName = userPlansData.at(i).toObject().value("category").toString();
             if (jsonName == tableName) {
-                QString planID = QString::number(userPlansData.at(i).toObject().value("id").toInt());
                 userPlansData.removeAt(i);
-                removePlanRequest(planID);
+                removePlanRequest(tableName);
                 break;
             }
         }
     }
 }
 
-void MainWindow::removePlanRequest(QString planID) {
-    QString req = server + "removePlan?" + "userID=" + QString::number(userID) + "&planID=" + planID;
+void MainWindow::removePlanRequest(QString category) {
+    QString req = server + "removePlan?" + "userID=" + QString::number(userID) + "&category=" + category;
     request.setUrl(QUrl(req));
     removePlanManager->get(request);
 }
@@ -507,10 +533,6 @@ void MainWindow::regRequestFinished(QNetworkReply *reply) {
         ui->regWrongLabel->setText("Логин занят");
         ui->regLoginLine->clear();
     }
-    else if (answer == "maximum reached") {
-        createMessageBox(QString("Зарегистрированно максимальное количество пользователей"));
-        return;
-    }
     else {
         clearAllLabels();
         createNewChart();
@@ -538,7 +560,6 @@ void MainWindow::authRequestFinished(QNetworkReply *reply) {
     }
     else {
         userID = answer.toUInt();
-        insideUserID = userID * maxPossibleItemID;
         addUserInfo(login, password, answer.toInt());
         readUserInfo();
         reloadAllData();
@@ -551,7 +572,7 @@ void MainWindow::authRequestFinished(QNetworkReply *reply) {
 }
 
 void MainWindow::reloadAllData() {
-    QString req = server + "getAll?" + "userID=" + QString::number(userID);
+    QString req = server + "getAll?" + "userID=" + QString::number(userID) + "&password=" + password;
     request.setUrl(QUrl(req));
     reloadAllManager->get(request);
 }
@@ -568,28 +589,16 @@ void MainWindow::reloadDataRequestFinished(QNetworkReply* reply) {
     userPlansData = fullUserData.value("plans").toArray();
     for (int i = 0; i < userCostsData.count(); ++i) {
         int tempCostID = userCostsData.at(i).toObject().value("id").toInt();
-        tempCostID -= insideUserID;
         if (tempCostID > maxCostID) {
             maxCostID = tempCostID;
         }
     }
-    for (int i = 0; i < userPlansData.count(); ++i) {
-        int tempPlanID = userPlansData.at(i).toObject().value("id").toInt();
-        tempPlanID -= insideUserID;
-        if (tempPlanID > maxPlanID) {
-            maxPlanID = tempPlanID;
-        }
-    }
     createNewSelectedData();
-    qDebug() << costsTypeCount;
     updateMap();
-    qDebug() << costsTypeCount;
     updateTable();
-    qDebug() << costsTypeCount;
     updatePlansTable();
-    qDebug() << costsTypeCount;
     createNewChart();
-    qDebug() << costsTypeCount;
+    updatePlansTable();
 }
 
 void MainWindow::on_updateButton_clicked() {
@@ -615,9 +624,7 @@ void MainWindow::clearAllLabels() {
 
 void MainWindow::clearAll() {
     userID = 0;
-    insideUserID = 0;
     maxCostID = 0;
-    maxPlanID = 0;
     password = "";
     login = "";
     chart->removeAllSeries();
