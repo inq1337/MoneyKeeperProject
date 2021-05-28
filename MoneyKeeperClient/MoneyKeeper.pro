@@ -13,11 +13,13 @@ CONFIG += c++11
 SOURCES += \
     addcostswindow.cpp \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    progressbardelegate.cpp
 
 HEADERS += \
     addcostswindow.h \
-    mainwindow.h
+    mainwindow.h \
+    progressbardelegate.h
 
 FORMS += \
     addcostswindow.ui \

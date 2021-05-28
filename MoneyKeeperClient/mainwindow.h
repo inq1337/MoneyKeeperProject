@@ -136,8 +136,6 @@ private slots:
 
     void createMessageBox(QString reply);
 
-    void test();
-
 public:
     MainWindow(QWidget *parent = nullptr);
     ~MainWindow();

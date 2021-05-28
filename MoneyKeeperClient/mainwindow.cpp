@@ -1,6 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "addcostswindow.h"
+#include "progressbardelegate.h"
 
 QJsonObject openUserInfo(); //main.cpp
 void addUserInfo(QString login, QString password, int id); //main.cpp
@@ -16,23 +17,22 @@ MainWindow::MainWindow(QWidget *parent)
 
     ui->setupUi(this);
     ui->centralwidget->hide();
+
+    QDate currentDate = QDate::currentDate();
+    startDay.setDate(currentDate.year(), currentDate.month(), 1);
+    ui->selectRange->setDate(startDay);
     if (userID) {
         QString req = server + "login?" + "login=" + login + "&password=" + password;
         request.setUrl(QUrl(req));
         authManager->get(request);
     }
     else {
+        createNewChart();
+        updateTable();
+        updatePlansTable();
         ui->centralwidget->show();
     }
-    QDate currentDate = QDate::currentDate();
-    startDay.setDate(currentDate.year(), currentDate.month(), 1);
-    createNewSelectedData();
-    ui->selectRange->setDate(startDay);
-    updateMap();
-    updateTable();
-    updatePlansTable();
 
-    createNewChart();
     chartview = new QChartView(chart);
     chartview->setRenderHint(QPainter::Antialiasing);
     chartview->chart()->setAnimationOptions(QChart::AllAnimations);
@@ -93,9 +93,7 @@ void MainWindow::createAllManagers() {
         }
     );
 }
-void MainWindow::test() {
-    this->hide();
-}
+
 void MainWindow::readUserInfo() {
     login = openUserInfo().value("login").toString();
     password = openUserInfo().value("password").toString();
@@ -118,7 +116,7 @@ void MainWindow::createNewChart() {
     chart->legend()->setFont(QFont("Trebuchet MS", 10));
     chart->legend()->setLabelColor(Qt::black);
     chart->legend()->detachFromChart();
-    chart->legend()->setGeometry(QRectF(440, 10, 260, 190));
+    chart->legend()->setGeometry(QRectF(440, 10, 240, 190));
     chart->setMinimumSize(ui->chartWidget->size());
     chart->setMaximumSize(ui->chartWidget->size());
     chart->setBackgroundRoundness(0);
@@ -280,6 +278,7 @@ void MainWindow::on_addCostsButton_clicked() {
     if (addCosts.isAdded) {
         addCost(addCosts.tempCategory, addCosts.tempComment,
                 addCosts.tempDate, addCosts.tempSum);
+        updatePlansTable();
     }
 }
 
@@ -344,48 +343,6 @@ void MainWindow::on_changeDataRangeButton_clicked() {
     createNewChart();
     chartview->update();
 }
-class ProgressBarDelegate : public QStyledItemDelegate {
-public:
-    ProgressBarDelegate( QObject* parent = 0 );
-    void paint( QPainter* painter, const QStyleOptionViewItem& option, const QModelIndex& index ) const;
-};
-
-ProgressBarDelegate::ProgressBarDelegate( QObject* parent ) : QStyledItemDelegate( parent ) {
-}
-
-void ProgressBarDelegate::paint(
-    QPainter* painter,
-    const QStyleOptionViewItem& option,
-    const QModelIndex& index
-) const {
-    int progress = index.data().toInt();
-
-    QString style = "QProgressBar { border: 1px solid rgb(206,212,218); border-radius: 6px; }";
-    style += "QProgressBar::chunk { background-color: rgb(13,110,253); border-radius: 5px; }";
-
-    QSize barSize;
-    barSize.setHeight(option.rect.height() - 6);
-    barSize.setWidth(option.rect.width());
-
-    QPoint barPosition;
-    barPosition.setX(option.rect.left());
-    barPosition.setY(option.rect.top() + 2);
-
-    QProgressBar renderer;
-    renderer.resize(barSize);
-    renderer.setMinimum(0);
-    renderer.setMaximum(100);
-    renderer.setValue(progress);
-    renderer.setAlignment(Qt::AlignCenter);
-    renderer.setFont(QFont("Trebuchet MS", 10, QFont::Bold));
-    renderer.setStyleSheet(style);
-    renderer.setContentsMargins(-10, -10, -10, -10);
-
-    painter->save();
-    painter->translate(barPosition);
-    renderer.render(painter);
-    painter->restore();
-}
 
 void MainWindow::updatePlansTable() {
     planTableModel = new QStandardItemModel(nullptr);
@@ -407,6 +364,8 @@ void MainWindow::updatePlansTable() {
         QStandardItem* categoryCol = new QStandardItem(category);
         QStandardItem* spentCol = new QStandardItem(QString::number(spentMoney)+ "/" + QString::number(sum));
         QStandardItem* spentPercentageCol = new QStandardItem(QString::number(spentPercentage));
+
+        categoryCol->setData(QColor(chartColors[category]), Qt::TextColorRole);
         planTableModel->appendRow(QList<QStandardItem*>()<<spacingCol<<categoryCol<<spentCol<<spentPercentageCol);
     }
     ui->planTable->setModel(planTableModel);
@@ -417,6 +376,7 @@ void MainWindow::updatePlansTable() {
     ui->planTable->setColumnWidth(1, 150);
     ui->planTable->setColumnWidth(2, 150);
     ui->planTable->horizontalHeader()->setStretchLastSection(true);
+    ui->planTable->verticalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
 }
 
 bool MainWindow::allowAddingPlan(QString category, int sum) {
@@ -598,7 +558,6 @@ void MainWindow::reloadDataRequestFinished(QNetworkReply* reply) {
     updateTable();
     updatePlansTable();
     createNewChart();
-    updatePlansTable();
 }
 
 void MainWindow::on_updateButton_clicked() {
@@ -620,6 +579,7 @@ void MainWindow::clearAllLabels() {
     ui->regPasswordLine->clear();
     ui->regRepeatPasswordLine->clear();
     ui->regWrongLabel->clear();
+    ui->addPlanSumLine->clear();
 }
 
 void MainWindow::clearAll() {
