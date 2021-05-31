@@ -6,16 +6,16 @@
 #include <QtNetwork/QNetworkReply>
 
 namespace Ui {
-class addCostsWindow;
+class AddCostsWindow;
 }
 
-class addCostsWindow : public QDialog
+class AddCostsWindow : public QDialog
 {
     Q_OBJECT
 
 public:
-    explicit addCostsWindow(QWidget *parent = nullptr);
-    ~addCostsWindow();
+    explicit AddCostsWindow(QWidget *parent = nullptr);
+    ~AddCostsWindow();
 
     bool isAdded = false;
 
@@ -37,7 +37,7 @@ private slots:
     void on_addCAddButton_clicked();
 
 private:
-    Ui::addCostsWindow *ui;
+    Ui::AddCostsWindow *ui;
 
     QString secondaryButtonFrameFocusStyle = "QFrame{"
     "border-style: solid;"

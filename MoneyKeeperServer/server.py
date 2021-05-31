@@ -6,8 +6,6 @@ abspath = path.abspath(__file__)
 dirname = path.dirname(abspath)
 chdir(dirname)
 
-max_possible_user_id = 10000
-
 conn = sqlite3.connect('usersBase.db', check_same_thread = False)
 cur = conn.cursor()
 
@@ -36,17 +34,9 @@ cur.execute("""CREATE TABLE IF NOT EXISTS plans(
 max_user_id = 0
 cur.execute("SELECT user_id FROM users;")
 all_results = cur.fetchall()
-print(all_results)
 for user in all_results:
     if user[0] > max_user_id:
         max_user_id = user[0]
-
-def check_reg_possibility(user_id: int) -> bool:
-    global max_possible_user_id
-    if user_id < max_possible_user_id:
-        return True
-    else:
-        return False
 
 
 def user_login_existence(login: str) -> bool:
@@ -86,16 +76,12 @@ def add_user(login, password: str):
     else:
         global max_user_id
         user_id = max_user_id + 1
-        if check_reg_possibility(user_id):
-            max_user_id += 1
+        max_user_id += 1
+        user = (user_id, login, password)
+        cur.execute("INSERT INTO users VALUES(?, ?, ?);", user)
+        conn.commit()
 
-            user = (user_id, login, password)
-            cur.execute("INSERT INTO users VALUES(?, ?, ?);", user)
-            conn.commit()
-
-            return str(user_id)
-        else:
-            return 'maximum reached'
+        return str(user_id)
 
 
 def add_cost(user_id, cost_id, sum: int, date, category, comment: str):

@@ -29,7 +29,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>MoneyKeeper</string>
+   <string>Money Keeper</string>
   </property>
   <property name="windowIcon">
    <iconset>
@@ -874,7 +874,7 @@ background-color: rgb(21, 115, 71)
          <string>Добавить</string>
         </property>
        </widget>
-       <widget class="QWidget" name="chartWidget" native="true">
+       <widget class="QFrame" name="chartFrame">
         <property name="geometry">
          <rect>
           <x>30</x>
@@ -899,6 +899,9 @@ background-color: rgb(21, 115, 71)
          <font>
           <family>Trebuchet MS</family>
          </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true"/>
         </property>
         <layout class="QHBoxLayout" name="horizontalLayout"/>
        </widget>
@@ -1326,7 +1329,7 @@ font-size: 12pt;
         </attribute>
        </widget>
        <zorder>exitButtonFrame</zorder>
-       <zorder>chartWidget</zorder>
+       <zorder>chartFrame</zorder>
        <zorder>updateButtonFrame</zorder>
        <zorder>changeDataRangeButtonFrame</zorder>
        <zorder>removeCostsButtonFrame</zorder>

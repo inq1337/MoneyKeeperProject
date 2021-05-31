@@ -36,7 +36,8 @@ MainWindow::MainWindow(QWidget *parent)
     chartview = new QChartView(chart);
     chartview->setRenderHint(QPainter::Antialiasing);
     chartview->chart()->setAnimationOptions(QChart::AllAnimations);
-    chartview->setParent(ui->chartWidget);
+    chartview->resize(ui->chartFrame->size());
+    chartview->setParent(ui->chartFrame);
     ui->addPlanSumLine->setValidator(new QIntValidator(1, 999999, this));
 }
 
@@ -102,7 +103,7 @@ void MainWindow::readUserInfo() {
 
 void MainWindow::createNewChart() {
     series = new QPieSeries();
-    QMapIterator<QString, int> i(costsTypeCount);
+    QMapIterator<QString, int> i(allCostSums);
     while (i.hasNext()) {
         i.next();
          series->append(i.key(), i.value());
@@ -110,15 +111,13 @@ void MainWindow::createNewChart() {
     paintChart();
     chart->removeAllSeries();
     chart->addSeries(series);
-    series->setHorizontalPosition(0.245);
+    series->setHorizontalPosition(0.209);
     series->setPieSize(1);
     chart->layout()->setContentsMargins(0, 0, 0, 0);
     chart->legend()->setFont(QFont("Trebuchet MS", 10));
     chart->legend()->setLabelColor(Qt::black);
     chart->legend()->detachFromChart();
-    chart->legend()->setGeometry(QRectF(440, 10, 240, 190));
-    chart->setMinimumSize(ui->chartWidget->size());
-    chart->setMaximumSize(ui->chartWidget->size());
+    chart->legend()->setGeometry(QRectF(390, 10, 330, 220));
     chart->setBackgroundRoundness(0);
 }
 
@@ -130,15 +129,15 @@ void MainWindow::paintChart() {
 }
 
 void MainWindow::updateMap() {
-    costsTypeCount.clear();
+    allCostSums.clear();
     for (int i = 0; i < selectedCostsDataRange.count(); ++i) {
         QString type = selectedCostsDataRange.at(i).toObject().value("category").toString();
         int count = selectedCostsDataRange.at(i).toObject().value("sum").toInt();
-        if (costsTypeCount.contains(type)) {
-            costsTypeCount[type] += count;
+        if (allCostSums.contains(type)) {
+            allCostSums[type] += count;
         }
         else {
-            costsTypeCount.insert(type, count);
+            allCostSums.insert(type, count);
         }
     }
 }
@@ -224,7 +223,7 @@ void MainWindow::updateTable() {
 }
 
 void MainWindow::addToChart() {
-    QMapIterator<QString, int> i(costsTypeCount);
+    QMapIterator<QString, int> i(allCostSums);
     if (series->slices().count() == 0) {
         createNewChart();
     }
@@ -238,7 +237,7 @@ void MainWindow::addToChart() {
                 if (i.key() == sliceName) {
                     existence = true;
                     if (i.value() != count) {
-                        series->slices().at(j)->setValue(costsTypeCount[sliceName]);
+                        series->slices().at(j)->setValue(allCostSums[sliceName]);
                     }
                 }
             }
@@ -272,13 +271,12 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::on_addCostsButton_clicked() {
-    addCostsWindow addCosts;
+    AddCostsWindow addCosts;
     addCosts.setModal(true);
     addCosts.exec();
     if (addCosts.isAdded) {
         addCost(addCosts.tempCategory, addCosts.tempComment,
                 addCosts.tempDate, addCosts.tempSum);
-        updatePlansTable();
     }
 }
 
@@ -296,6 +294,7 @@ void MainWindow::addCost(QString category, QString comment, QString date, int su
     updateMap();
     addToChart();
     updateTable();
+    updatePlansTable();
 
     QString req = "http://localhost:5000/addCosts?userID=" + QString::number(userID) + "&id="
             + QString::number(costID) + "&sum=" + QString::number(sum) + "&date="
@@ -322,6 +321,8 @@ void MainWindow::on_removeCostsButton_clicked() {
                 removeCostRequest(colID);
                 RemoveFromChart(name, count);
                 removeFromSelectedData(colID);
+                updateMap();
+                updatePlansTable();
                 break;
             }
         }
@@ -340,6 +341,7 @@ void MainWindow::on_changeDataRangeButton_clicked() {
     createNewSelectedData();
     updateMap();
     updateTable();
+    updatePlansTable();
     createNewChart();
     chartview->update();
 }
@@ -352,8 +354,8 @@ void MainWindow::updatePlansTable() {
         QString category = userPlansData.at(i).toObject().value("category").toString();
         int sum = userPlansData.at(i).toObject().value("sum").toInt();
         int spentMoney;
-        if (costsTypeCount.contains(category)) {
-            spentMoney = costsTypeCount[category];
+        if (allCostSums.contains(category)) {
+            spentMoney = allCostSums[category];
         }
         else {
             spentMoney = 0;
@@ -494,8 +496,7 @@ void MainWindow::regRequestFinished(QNetworkReply *reply) {
         ui->regLoginLine->clear();
     }
     else {
-        clearAllLabels();
-        createNewChart();
+        clearAllInputLines();
         ui->stackedWidget->setCurrentIndex(0);
     }
 }
@@ -523,7 +524,7 @@ void MainWindow::authRequestFinished(QNetworkReply *reply) {
         addUserInfo(login, password, answer.toInt());
         readUserInfo();
         reloadAllData();
-        clearAllLabels();
+        clearAllInputLines();
         ui->stackedWidget->setCurrentIndex(2);
         if (ui->centralwidget->isHidden()) {
             ui->centralwidget->show();
@@ -566,12 +567,12 @@ void MainWindow::on_updateButton_clicked() {
 
 void MainWindow::on_exitButton_clicked() {
     removeUserInfo();
-    clearAllLabels();
+    clearAllInputLines();
     clearAll();
     ui->stackedWidget->setCurrentIndex(0);
 }
 
-void MainWindow::clearAllLabels() {
+void MainWindow::clearAllInputLines() {
     ui->authLoginLine->clear();
     ui->authPasswordLine->clear();
     ui->authWrongLabel->clear();
@@ -590,7 +591,7 @@ void MainWindow::clearAll() {
     chart->removeAllSeries();
     costsTableModel->clear();
     planTableModel->clear();
-    costsTypeCount.clear();
+    allCostSums.clear();
     while (selectedCostsDataRange.count()) {
         selectedCostsDataRange.pop_back();
     }

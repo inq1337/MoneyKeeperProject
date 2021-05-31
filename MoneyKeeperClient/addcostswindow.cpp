@@ -2,12 +2,11 @@
 #include "mainwindow.h"
 #include "ui_addcostswindow.h"
 
-void addCosts (int id, int sum, QString date, QString category, QString comment); //main.cpp
 QJsonObject openUserInfo(); //main.cpp
 
-addCostsWindow::addCostsWindow(QWidget *parent) :
+AddCostsWindow::AddCostsWindow(QWidget *parent) :
     QDialog(parent),
-    ui(new Ui::addCostsWindow) {
+    ui(new Ui::AddCostsWindow) {
 
     ui->setupUi(this);
 
@@ -26,11 +25,11 @@ addCostsWindow::addCostsWindow(QWidget *parent) :
     ui->addCSumLine->setValidator(new QIntValidator(1, 999999, this));
 }
 
-addCostsWindow::~addCostsWindow() {
+AddCostsWindow::~AddCostsWindow() {
     delete ui;
 }
 
-void addCostsWindow::on_addCAddButton_clicked() {
+void AddCostsWindow::on_addCAddButton_clicked() {
     tempSum = ui->addCSumLine->text().toInt();
     tempDate = ui->addCChooseDate->text();
     tempCategory = ui->addCCategoryBox->currentText();
@@ -39,22 +38,22 @@ void addCostsWindow::on_addCAddButton_clicked() {
     this->close();
 }
 
-void addCostsWindow::on_addCRejectButton_clicked() {
+void AddCostsWindow::on_addCRejectButton_clicked() {
     this->close();
 }
 
-void addCostsWindow::on_addCAddButton_pressed() {
+void AddCostsWindow::on_addCAddButton_pressed() {
     ui->addCAddButtonFrame->setStyleSheet(acceptButtonFrameFocusStyle);
 }
 
-void addCostsWindow::on_addCAddButton_released() {
+void AddCostsWindow::on_addCAddButton_released() {
     ui->addCAddButtonFrame->setStyleSheet(defaultFrameStyle);
 }
 
-void addCostsWindow::on_addCRejectButton_pressed() {
+void AddCostsWindow::on_addCRejectButton_pressed() {
     ui->addCRejectButtonFrame->setStyleSheet(secondaryButtonFrameFocusStyle);
 }
 
-void addCostsWindow::on_addCRejectButton_released() {
+void AddCostsWindow::on_addCRejectButton_released() {
     ui->addCRejectButtonFrame->setStyleSheet(defaultFrameStyle);
 }

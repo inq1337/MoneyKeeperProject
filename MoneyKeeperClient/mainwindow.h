@@ -88,7 +88,7 @@ private slots:
 
     void readUserInfo();
 
-    void clearAllLabels();
+    void clearAllInputLines();
 
     void clearAll();
 
@@ -150,10 +150,11 @@ private:
 
     QJsonArray userCostsData, userPlansData, selectedCostsDataRange;
 
-    QMap<QString, int> costsTypeCount;
+    QMap<QString, int> allCostSums;
 
     QMap<QString, QString> chartColors {
         //all with 300 material.io/resources/color
+
         {"Продукты", "#4fc3f7"},         //light blue
         {"Всё для дома", "#af4448"},     //red (dark)
         {"Кафе", "#c7a4ff"},             //deep purple (light)
@@ -163,7 +164,7 @@ private:
         {"Красота", "#ffb74d"},          //orange
         {"Одежда", "#009faf"},           //cyan (dark)
         {"Досуг", "#ff8a65"},            //deep orange
-        {"Прочее", "#62757f"}           //grey (dark)
+        {"Прочее", "#62757f"}            //grey (dark)
     };
 
     QChart *chart;
@@ -187,49 +188,49 @@ private:
     int userID = 0, maxCostID = 0;
 
     QString primaryButtonFrameFocusStyle = "QFrame{"
-    "border-style: solid;"
-    "border-width: 5px;"
-    "border-color: rgb(147,190,251);"
-    "border-radius: 6px;"
-    "background-color: rgb(147,190,251);"
-    "}";
+            "border-style: solid;"
+            "border-width: 5px;"
+            "border-color: rgb(147,190,251);"
+            "border-radius: 6px;"
+            "background-color: rgb(147,190,251);"
+            "}";
 
     QString deleteButtonFrameFocusStyle = "QFrame{"
-    "border-style: solid;"
-    "border-width: 5px;"
-    "border-color: rgb(240, 168, 175);"
-    "border-radius: 6px;"
-    "background-color: rgb(240, 168, 175);"
-    "}";
+            "border-style: solid;"
+            "border-width: 5px;"
+            "border-color: rgb(240, 168, 175);"
+            "border-radius: 6px;"
+            "background-color: rgb(240, 168, 175);"
+            "}";
 
     QString acceptButtonFrameFocusStyle = "QFrame{"
-    "border-style: solid;"
-    "border-width: 5px;"
-    "border-color: rgb(157, 204, 182);"
-    "border-radius: 6px;"
-    "background-color: rgb(157, 204, 182);"
-    "}";
+            "border-style: solid;"
+            "border-width: 5px;"
+            "border-color: rgb(157, 204, 182);"
+            "border-radius: 6px;"
+            "background-color: rgb(157, 204, 182);"
+            "}";
 
     QString secondaryButtonFrameFocusStyle = "QFrame{"
-    "border-style: solid;"
-    "border-width: 5px;"
-    "border-color: rgb(181,185,189);"
-    "border-radius: 6px;"
-    "background-color: rgb(181,185,189);"
-    "}";
+            "border-style: solid;"
+            "border-width: 5px;"
+            "border-color: rgb(181,185,189);"
+            "border-radius: 6px;"
+            "background-color: rgb(181,185,189);"
+            "}";
 
     QString defaultFrameStyle = "QFrame{"
-    "border: none;"
-    "background-color: white;"
-    "}";
+            "border: none;"
+            "background-color: white;"
+            "}";
 
     QString exitButtonFrameFocusStyle = "QFrame{"
-    "border-style: solid;"
-    "border-width: 5px;"
-    "border-color: rgb(192,196,200);"
-    "border-radius: 6px;"
-    "background-color: rgb(192,196,200);"
-    "}";
+            "border-style: solid;"
+            "border-width: 5px;"
+            "border-color: rgb(192,196,200);"
+            "border-radius: 6px;"
+            "background-color: rgb(192,196,200);"
+            "}";
 
 };
 #endif // MAINWINDOW_H

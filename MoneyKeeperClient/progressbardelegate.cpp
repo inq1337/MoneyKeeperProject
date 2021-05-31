@@ -10,7 +10,7 @@ void ProgressBarDelegate::paint(
 ) const {
     int progress = index.data().toInt();
 
-    QString style = "QProgressBar { border: 1px solid rgb(206,212,218); border-radius: 6px; }";
+    QString style = "QProgressBar { border: 2px solid rgb(206,212,218); border-radius: 6px; }";
     style += "QProgressBar::chunk { background-color: rgb(13,110,253); border-radius: 5px; }";
 
     QSize barSize;
@@ -21,23 +21,23 @@ void ProgressBarDelegate::paint(
     barPosition.setX(option.rect.left());
     barPosition.setY(option.rect.top() + 7);
 
-    QProgressBar renderer;
-    renderer.resize(barSize);
-    renderer.setRange(0, 100);
+    QProgressBar progressBar;
+    progressBar.resize(barSize);
+    progressBar.setRange(0, 100);
     if (progress > 100) {
-        renderer.setValue(100);
-        renderer.setFormat(QString::number(progress) + "%");
+        progressBar.setValue(100);
+        progressBar.setFormat(QString::number(progress) + "%");
     }
     else {
-        renderer.setValue(progress);
+        progressBar.setValue(progress);
     }
-    renderer.setAlignment(Qt::AlignCenter);
-    renderer.setFont(QFont("Trebuchet MS", 10, QFont::Bold));
-    renderer.setStyleSheet(style);
-    renderer.setContentsMargins(-10, -10, -10, -10);
+    progressBar.setAlignment(Qt::AlignCenter);
+    progressBar.setFont(QFont("Trebuchet MS", 10, QFont::Bold));
+    progressBar.setStyleSheet(style);
+    progressBar.setContentsMargins(-10, -10, -10, -10);
 
     painter->save();
     painter->translate(barPosition);
-    renderer.render(painter);
+    progressBar.render(painter);
     painter->restore();
 }
